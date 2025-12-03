@@ -1,5 +1,50 @@
 @import "tailwindcss";
 
-body { @apply bg-surface-50 text-surface-900 antialiased; }
-/* Glassmorphism utility */
-.glass { @apply bg-white/80 backdrop-blur-lg border border-white/20 shadow-sm; }
+@theme {
+  /* --- Colors --- */
+  /* brand */
+  --color-brand-50: #f0fdfa;
+  --color-brand-500: #14b8a6;
+  --color-brand-600: #0d9488;
+  --color-brand-900: #134e4a;
+
+  /* surface */
+  --color-surface-50: #f8fafc;
+  --color-surface-100: #f1f5f9;
+  --color-surface-900: #0f172a;
+
+  /* --- Fonts --- */
+  --font-sans: "Inter", sans-serif;
+
+  /* --- Animations --- */
+  --animate-blob: blob 7s infinite;
+  --animate-fade-in: fadeIn 0.5s ease-out;
+
+  /* --- Keyframes --- */
+  @keyframes blob {
+    0% { transform: translate(0px, 0px) scale(1); }
+    33% { transform: translate(30px, -50px) scale(1.1); }
+    66% { transform: translate(-20px, 20px) scale(0.9); }
+    100% { transform: translate(0px, 0px) scale(1); }
+  }
+
+  @keyframes fadeIn {
+    0% { 
+      opacity: 0; 
+      transform: translateY(10px); 
+    }
+    100% { 
+      opacity: 1; 
+      transform: translateY(0); 
+    }
+  }
+}
+
+/* Utilities (keep what you had before) */
+body {
+  @apply bg-surface-50 text-surface-900 antialiased;
+}
+
+.glass {
+  @apply bg-white/80 backdrop-blur-lg border border-white/20 shadow-sm;
+}
