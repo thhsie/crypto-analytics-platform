@@ -15,8 +15,8 @@ export const PublicOnlyRoute = () => {
     return () => unsub();
   }, []);
 
-  if (loading) return null; // Or a minimal spinner
+  if (loading) return null;
 
-  // If user exists, kick them to dashboard
+  // If user exists, redirect them to dashboard
   return user ? <Navigate to="/dashboard" replace /> : <Outlet />;
 };

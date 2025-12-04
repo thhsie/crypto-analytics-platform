@@ -1,61 +1,86 @@
 @import "tailwindcss";
 
 @theme {
-  /* --- Colors --- */
-  /* primary */
-  --color-primary-50: #eef2ff;
-  --color-primary-100: #e0e7ff;
-  --color-primary-500: #6366f1; /* Indigo */
-  --color-primary-600: #4f46e5;
-  --color-primary-700: #4338ca;
+  /* Colours */
+  --color-brand-50: #f0fdfa;
+  --color-brand-100: #ccfbf1;
+  --color-brand-400: #2dd4bf;
+  --color-brand-500: #14b8a6;
+  --color-brand-600: #0d9488;
+  --color-brand-900: #134e4a;
 
-  /* dark */
-  --color-dark-900: #0f172a; /* Slate 900 */
-  --color-dark-800: #1e293b; /* Slate 800 */
-  --color-dark-border: #334155; /* Slate 700 */
+  --color-surface-50: #f8fafc; 
+  --color-surface-100: #f1f5f9;
+  --color-surface-200: #e2e8f0;
+  --color-surface-300: #cbd5e1;
+  --color-surface-400: #94a3b8;
+  --color-surface-500: #64748b;
+  --color-surface-600: #475569;
+  --color-surface-700: #334155;
+  --color-surface-800: #1e293b;
+  --color-surface-900: #0f172a;
+  --color-surface-950: #020617;
 
-  /* --- Fonts --- */
-  --font-sans: 'Inter', 'system-ui', 'sans-serif';
-  --font-mono: 'JetBrains Mono', 'monospace'; /* Good for numbers */
+  /* FONTS */
+  --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 
-  /* --- Animations --- */
-  --animate-fade-in: fadeIn 0.4s ease-out;
+  /* Animations */
+  --animate-blob: blob 12s infinite;
+  --animate-fade-in: fadeIn 0.5s ease-out;
 
-  /* --- Keyframes --- */
+  @keyframes blob {
+    0% { transform: translate(0px, 0px) scale(1); }
+    33% { transform: translate(30px, -50px) scale(1.1); }
+    66% { transform: translate(-20px, 20px) scale(0.9); }
+    100% { transform: translate(0px, 0px) scale(1); }
+  }
+
   @keyframes fadeIn {
-    0% {
-      opacity: 0;
-      transform: translateY(5px);
-    }
-    100% {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    0% { opacity: 0; transform: translateY(10px); }
+    100% { opacity: 1; transform: translateY(0); }
   }
 }
 
-/* Existing utility styles from index.css (Update body styles to use new colors) */
-/* body { @apply bg-surface-50 text-surface-900 antialiased; } */
-/* Example update for a dark theme: */
-body {
-  @apply bg-dark-900 text-primary-50 antialiased;
+@layer base {
+  :root {
+    --grid-color: rgba(255, 255, 255, 0.05);
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-surface-950 text-surface-50 antialiased font-sans;
+    selection {
+      @apply bg-brand-500/30 text-brand-100;
+    }
+  }
+
+  /* Apply Display Font to Headings automatically */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
 }
 
-/* Glassmorphism utility */
+/* Utilities */
+.bg-grid-pattern {
+  background-image: 
+    linear-gradient(to right, var(--grid-color) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-color) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
+}
+
 .glass {
-  @apply bg-white/80 backdrop-blur-lg border border-white/20 shadow-sm;
+  @apply bg-surface-900/60 backdrop-blur-xl border border-white/5 shadow-none;
 }
 
-/* Tabular nums for financial data */
+.glass-panel {
+  @apply bg-surface-900/40 backdrop-blur-md border border-white/10 shadow-xl;
+  transition: border-color 0.2s;
+}
+
 .tabular {
   font-feature-settings: "tnum";
   font-variant-numeric: tabular-nums;
-}
-
-/* Technical Grid Background */
-.bg-grid-pattern {
-  background-image: linear-gradient(to right, #e2e8f0 1px, transparent 1px),
-    linear-gradient(to bottom, #e2e8f0 1px, transparent 1px);
-  background-size: 40px 40px;
-  mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
 }

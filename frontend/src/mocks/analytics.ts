@@ -3,7 +3,7 @@ import { subHours } from 'date-fns';
 export interface PricePoint { timestamp: number; price: number; volume: number; }
 
 export const fetchMockAnalytics = async (coinId: string, days: number): Promise<PricePoint[]> => {
-  await new Promise(r => setTimeout(r, 800)); // Cinematic delay
+  await new Promise(r => setTimeout(r, 800)); // Simulated delay
   const data: PricePoint[] = [];
   const now = new Date();
   const base = coinId === 'bitcoin' ? 45000 : 2500;
