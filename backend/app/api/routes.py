@@ -8,6 +8,11 @@ from datetime import datetime, timedelta
 
 router = APIRouter()
 
+COIN_LIST_CACHE = {
+    "data": [],
+    "expires": datetime.min
+}
+
 class PairDTO(BaseModel):
     coin_id: str
     vs_currency: str
@@ -49,24 +54,45 @@ async def get_analytics(
     to_ts: int = Query(alias="to"),
     uid: str = Depends(get_current_user)
 ):
+    # Check if we have data covering the requested range (roughly)
+    # We check the earliest timestamp in DB for this coin
+    earliest_record = await PriceData.find(
+        PriceData.coin_id == coin,
+        PriceData.vs_currency == vs
+    ).sort("+timestamp").limit(1).to_list()
+    
+    cutoff_time = datetime.fromtimestamp(from_ts / 1000.0)
+    
+    # If no data OR earliest data is newer than what we asked for (meaning we have a gap in history)
+    # We trigger a fetch.
+    should_fetch = False
+    if not earliest_record:
+        should_fetch = True
+    else:
+        db_earliest = datetime.fromtimestamp(earliest_record[0].timestamp / 1000.0)
+        # If DB starts at Dec 5th, but we asked for Dec 1st, we need to fetch history
+        if db_earliest > cutoff_time + timedelta(hours=1): 
+            should_fetch = True
+
+    if should_fetch:
+        # Calculate days needed. 
+        # timestamp is ms. (now - from) / 1000 / 3600 / 24
+        now_ts = datetime.utcnow().timestamp() * 1000
+        days_needed = (now_ts - from_ts) / (1000 * 60 * 60 * 24)
+        days_needed = max(1, int(days_needed) + 1) # Round up, min 1 day
+        
+        # Max cap to 90 to respect API limits
+        days_needed = min(days_needed, 90)
+        
+        # Synchronous await here ensures the user sees data immediately
+        await backfill_historical_data(coin, vs, days=days_needed)
+
     return await PriceData.find(
         PriceData.coin_id == coin,
         PriceData.vs_currency == vs,
         PriceData.timestamp >= from_ts,
         PriceData.timestamp <= to_ts
     ).sort("+timestamp").to_list()
-
-@router.get("/analytics/{coin}/{vs}/latest")
-async def get_latest(coin: str, vs: str, uid: str = Depends(get_current_user)):
-    latest = await PriceData.find(PriceData.coin_id == coin, PriceData.vs_currency == vs).sort("-timestamp").limit(1).to_list()
-    if not latest: raise HTTPException(404, "No data")
-    return latest[0]
-
-
-COIN_LIST_CACHE = {
-    "data": [],
-    "expires": datetime.min
-}
 
 @router.get("/coins/list")
 async def get_supported_coins(uid: str = Depends(get_current_user)):
@@ -137,7 +163,7 @@ async def start_tracking(
     # but data arrives shortly after.
     # We trigger this regardless of whether the user was already tracking it, 
     # just in case the data is stale.
-    background_tasks.add_task(backfill_historical_data, dto.coin_id, dto.vs_currency, 7)
+    background_tasks.add_task(backfill_historical_data, dto.coin_id, dto.vs_currency, 90)
 
     if exist:
         exist.status = "active"
