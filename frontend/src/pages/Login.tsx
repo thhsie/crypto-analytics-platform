@@ -33,7 +33,7 @@ export const Login = () => {
           <Activity size={28} />
         </div>
 
-        <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">Welcome Back</h2>
+        <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">Welcome</h2>
         <p className="text-surface-400 mb-8 font-medium">Sign in to access your terminal</p>
         
         <button
