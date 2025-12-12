@@ -9,12 +9,14 @@ import { AssetSelect } from '../components/AssetSelect';
 import { Plus, Check, RefreshCw, BarChart2 } from 'lucide-react';
 import clsx from 'clsx';
 import { motion } from 'framer-motion';
+import { useToast } from '../context/ToastContext';
 
 export const Dashboard = () => {
     const navigate = useNavigate();
     const [coin, setCoin] = useState('bitcoin');
     const [days, setDays] = useState(7);
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+    const { showToast } = useToast();
     
     // Auth Guard
     useEffect(() => {
@@ -50,6 +52,17 @@ export const Dashboard = () => {
         
         return { text: "Neutral", color: "text-surface-400" };
     }, [data]);
+
+    const signalTooltip = `ALGORITHM: Simple Moving Average (SMA)
+
+We calculate the average price over the selected timeframe (e.g. 7 Days) and compare it to the current price.
+
+    • Strong Buy: Price is > 5% above average
+    • Buy: Price is > 0% above average
+    • Sell: Price is below average
+    • Strong Sell: Price is > 5% below average
+
+This identifies if the asset is overbought or oversold relative to its recent baseline.`;
     // ------------------------------------------------------------------
 
     return (
@@ -125,22 +138,22 @@ export const Dashboard = () => {
                     label="Last Price" 
                     value={latest?.price || 0} 
                     prefix="$" 
+                    type="currency"
                     loading={isLoading} 
-                    delay={0.1} 
                 />
                 <MetricCard 
                     label="24h Volume" 
                     value={latest?.volume || 0} 
                     prefix="$" 
+                    type="compact"
                     loading={isLoading} 
-                    delay={0.2} 
                 />
                 <MetricCard 
                     label="Trend Signal" 
-                    value={isLoading ? "-" : marketSignal.text} 
+                    value={marketSignal.text} 
                     valueColor={marketSignal.color}
-                    loading={isLoading} 
-                    delay={0.3} 
+                    loading={isLoading}
+                    tooltip={signalTooltip}
                 />
             </div>
 
@@ -163,7 +176,20 @@ export const Dashboard = () => {
             <ConfirmDialog
                 isOpen={isConfirmOpen}
                 onClose={() => setIsConfirmOpen(false)}
-                onConfirm={() => trackMutation.mutate({ coin_id: coin, vs_currency: 'usd' })}
+                onConfirm={() => {
+                    trackMutation.mutate(
+                        { coin_id: coin, vs_currency: 'usd' }, 
+                        {
+                            onSuccess: () => {
+                                showToast(`Now tracking ${coin.toUpperCase()}`, 'success');
+                                setIsConfirmOpen(false);
+                            },
+                            onError: () => {
+                                showToast('Failed to start stream. Server might be busy.', 'error');
+                            }
+                        }
+                    );
+                }}
                 title={`Track ${coin.toUpperCase()}?`}
                 message={`This will start a persistent background worker to poll ${coin} data every 5 minutes. Historical data will be backfilled automatically.`}
                 confirmText="Start Tracking"
