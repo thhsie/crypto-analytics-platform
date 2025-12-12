@@ -4,12 +4,35 @@ import type { PricePoint } from '../mocks/analytics';
 
 export const MainChart = ({ data }: { data: PricePoint[] }) => {
   const options: Highcharts.Options = {
-    chart: { height: 450, backgroundColor: 'transparent', style: { fontFamily: 'Inter' } },
+    chart: { 
+        height: 450, 
+        backgroundColor: 'transparent', 
+        style: { 
+            fontFamily: 'var(--font-sans)'
+        } 
+    },
     title: { text: undefined },
-    xAxis: { type: 'datetime', lineColor: '#e2e8f0', tickColor: '#e2e8f0', labels: { style: { color: '#64748b' } } },
+    xAxis: { 
+        type: 'datetime', 
+        lineColor: '#334155',
+        tickColor: '#334155', 
+        labels: { style: { color: '#94a3b8' } } 
+    },
     yAxis: [
-      { title: { text: 'Price' }, height: '60%', gridLineColor: '#f1f5f9', labels: { style: { color: '#64748b' } } },
-      { title: { text: 'Volume' }, top: '65%', height: '35%', offset: 0, gridLineColor: '#f1f5f9', labels: { style: { color: '#64748b' } } }
+      { 
+        title: { text: 'Price' }, 
+        height: '60%', 
+        gridLineColor: '#1e293b',
+        labels: { style: { color: '#94a3b8' } } 
+      },
+      { 
+        title: { text: 'Volume' }, 
+        top: '65%', 
+        height: '35%', 
+        offset: 0, 
+        gridLineColor: '#1e293b', 
+        labels: { style: { color: '#94a3b8' } } 
+      }
     ],
     series: [
       { type: 'area', name: 'Price', data: data.map(d => [d.timestamp, d.price]), color: '#14b8a6', fillOpacity: 0.1, threshold: null, lineWidth: 2 },

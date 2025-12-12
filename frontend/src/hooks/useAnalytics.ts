@@ -66,3 +66,16 @@ export const useStopTracking = () => {
         onSuccess: () => qc.invalidateQueries({ queryKey: ['pairs'] })
     });
 };
+
+export const useCoinList = () => {
+    return useQuery({
+        queryKey: ['coins'],
+        queryFn: async () => {
+            const conf = await getAuthHeaders();
+            const { data } = await api.get('/coins/list', conf);
+            return data as { id: string; symbol: string; name: string; image?: string; current_price?: number }[];
+        },
+        enabled: !!auth.currentUser,
+        staleTime: 1000 * 60 * 60, // 1 hour
+    });
+};
