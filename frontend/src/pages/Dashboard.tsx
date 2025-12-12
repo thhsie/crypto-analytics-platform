@@ -106,7 +106,7 @@ This identifies if the asset is overbought or oversold relative to its recent ba
                     
                     {/* Status Badge */}
                     <div className="flex flex-col gap-2">
-                        <span className="text-[10px] font-bold text-surface-500 uppercase tracking-widest pl-1">Tracking Status</span>
+                        <span className="text-[10px] font-bold text-surface-500 uppercase tracking-widest pl-1">Data Source</span>
                         <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-surface-900/50 border border-white/5 text-sm font-mono text-surface-300">
                             <span className={clsx("w-2 h-2 rounded-full", isLoading ? "bg-amber-500 animate-pulse" : "bg-emerald-500")}></span>
                             {isLoading ? "SYNCING" : "LIVE"}
