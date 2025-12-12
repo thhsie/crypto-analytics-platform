@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, BackgroundTasks
 from app.db.models import TrackedPair, PriceData, User
 from app.auth import get_current_user
+from app.services.market_data import backfill_historical_data
 from pydantic import BaseModel
 import httpx
 from datetime import datetime, timedelta
@@ -113,3 +114,34 @@ async def get_supported_coins(uid: str = Depends(get_current_user)):
             # Fallback if API fails
             print(f"Coin list fetch error: {e}")
             return COIN_LIST_CACHE["data"] or []
+
+@router.post("/pairs", status_code=201)
+async def start_tracking(
+    dto: PairDTO, 
+    background_tasks: BackgroundTasks, # Inject BackgroundTasks
+    uid: str = Depends(get_current_user)
+):
+    # 1. Ensure User
+    if not await User.find_one(User.firebase_uid == uid):
+        await User(firebase_uid=uid).insert()
+
+    # 2. Check if Pair Exists
+    exist = await TrackedPair.find_one(
+        TrackedPair.user_id == uid,
+        TrackedPair.coin_id == dto.coin_id,
+        TrackedPair.vs_currency == dto.vs_currency
+    )
+
+    # 3. Trigger Data Fetch (Background)
+    # This runs AFTER the response is sent, so UI doesn't freeze, 
+    # but data arrives shortly after.
+    # We trigger this regardless of whether the user was already tracking it, 
+    # just in case the data is stale.
+    background_tasks.add_task(backfill_historical_data, dto.coin_id, dto.vs_currency, 7)
+
+    if exist:
+        exist.status = "active"
+        await exist.save()
+        return exist
+
+    return await TrackedPair(user_id=uid, coin_id=dto.coin_id, vs_currency=dto.vs_currency).insert()
