@@ -2,6 +2,8 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from app.db.models import TrackedPair, PriceData, User
 from app.auth import get_current_user
 from pydantic import BaseModel
+import httpx
+from datetime import datetime, timedelta
 
 router = APIRouter()
 
@@ -58,3 +60,56 @@ async def get_latest(coin: str, vs: str, uid: str = Depends(get_current_user)):
     latest = await PriceData.find(PriceData.coin_id == coin, PriceData.vs_currency == vs).sort("-timestamp").limit(1).to_list()
     if not latest: raise HTTPException(404, "No data")
     return latest[0]
+
+
+COIN_LIST_CACHE = {
+    "data": [],
+    "expires": datetime.min
+}
+
+@router.get("/coins/list")
+async def get_supported_coins(uid: str = Depends(get_current_user)):
+    """
+    Returns top coins. Cached for 1 hour to respect CoinGecko limits.
+    """
+    global COIN_LIST_CACHE
+    now = datetime.utcnow()
+    
+    if COIN_LIST_CACHE["data"] and now < COIN_LIST_CACHE["expires"]:
+        return COIN_LIST_CACHE["data"]
+
+    # Fetch Top 50 coins by market cap
+    url = "https://api.coingecko.com/api/v3/coins/markets"
+    params = {
+        "vs_currency": "usd",
+        "order": "market_cap_desc",
+        "per_page": 50,
+        "page": 1,
+        "sparkline": "false"
+    }
+    
+    async with httpx.AsyncClient() as client:
+        try:
+            resp = await client.get(url, params=params)
+            resp.raise_for_status()
+            data = resp.json()
+            
+            # Map to our frontend format
+            formatted = [
+                {
+                    "id": c["id"],
+                    "symbol": c["symbol"].upper(),
+                    "name": c["name"],
+                    "image": c["image"],
+                    "current_price": c["current_price"]
+                }
+                for c in data
+            ]
+            
+            COIN_LIST_CACHE["data"] = formatted
+            COIN_LIST_CACHE["expires"] = now + timedelta(hours=1)
+            return formatted
+        except Exception as e:
+            # Fallback if API fails
+            print(f"Coin list fetch error: {e}")
+            return COIN_LIST_CACHE["data"] or []
