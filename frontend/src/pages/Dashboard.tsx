@@ -75,7 +75,7 @@ This identifies if the asset is overbought or oversold relative to its recent ba
                         Market Information
                     </h1>
                     <p className="text-sm text-surface-400 mt-1 font-medium pl-1">
-                        Real-time data streaming
+                        Live market data updates
                     </p>
                 </div>
                 
@@ -106,7 +106,7 @@ This identifies if the asset is overbought or oversold relative to its recent ba
                     
                     {/* Status Badge */}
                     <div className="flex flex-col gap-2">
-                        <span className="text-[10px] font-bold text-surface-500 uppercase tracking-widest pl-1">Stream Status</span>
+                        <span className="text-[10px] font-bold text-surface-500 uppercase tracking-widest pl-1">Tracking Status</span>
                         <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-surface-900/50 border border-white/5 text-sm font-mono text-surface-300">
                             <span className={clsx("w-2 h-2 rounded-full", isLoading ? "bg-amber-500 animate-pulse" : "bg-emerald-500")}></span>
                             {isLoading ? "SYNCING" : "LIVE"}
@@ -127,7 +127,7 @@ This identifies if the asset is overbought or oversold relative to its recent ba
                                 : "bg-brand-600 text-white border-brand-600 hover:bg-brand-500 hover:border-brand-500 shadow-lg shadow-brand-900/20 active:translate-y-0.5"
                         )}
                    >
-                       {isTracking ? <><Check size={18} /> Active Stream</> : <><Plus size={18} /> Track Asset</>}
+                       {isTracking ? <><Check size={18} /> Tracking </> : <><Plus size={18} /> Track Asset</>}
                    </button>
                 </div>
             </div>
@@ -185,7 +185,7 @@ This identifies if the asset is overbought or oversold relative to its recent ba
                                 setIsConfirmOpen(false);
                             },
                             onError: () => {
-                                showToast('Failed to start stream. Server might be busy.', 'error');
+                                showToast('Failed to start tracking. Server might be busy.', 'error');
                             }
                         }
                     );
