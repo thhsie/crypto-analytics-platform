@@ -57,9 +57,11 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Crypto Analytics API", lifespan=lifespan)
 
 # CORS
+origins = os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

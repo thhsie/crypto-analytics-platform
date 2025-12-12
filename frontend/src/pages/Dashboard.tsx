@@ -9,12 +9,14 @@ import { AssetSelect } from '../components/AssetSelect';
 import { Plus, Check, RefreshCw, BarChart2 } from 'lucide-react';
 import clsx from 'clsx';
 import { motion } from 'framer-motion';
+import { useToast } from '../context/ToastContext';
 
 export const Dashboard = () => {
     const navigate = useNavigate();
     const [coin, setCoin] = useState('bitcoin');
     const [days, setDays] = useState(7);
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+    const { showToast } = useToast();
     
     // Auth Guard
     useEffect(() => {
@@ -50,6 +52,17 @@ export const Dashboard = () => {
         
         return { text: "Neutral", color: "text-surface-400" };
     }, [data]);
+
+    const signalTooltip = `ALGORITHM: Simple Moving Average (SMA)
+
+We calculate the average price over the selected timeframe (e.g. 7 Days) and compare it to the current price.
+
+    • Strong Buy: Price is > 5% above average
+    • Buy: Price is > 0% above average
+    • Sell: Price is below average
+    • Strong Sell: Price is > 5% below average
+
+This identifies if the asset is overbought or oversold relative to its recent baseline.`;
     // ------------------------------------------------------------------
 
     return (
@@ -62,7 +75,7 @@ export const Dashboard = () => {
                         Market Information
                     </h1>
                     <p className="text-sm text-surface-400 mt-1 font-medium pl-1">
-                        Real-time data streaming
+                        Live market data updates
                     </p>
                 </div>
                 
@@ -93,7 +106,7 @@ export const Dashboard = () => {
                     
                     {/* Status Badge */}
                     <div className="flex flex-col gap-2">
-                        <span className="text-[10px] font-bold text-surface-500 uppercase tracking-widest pl-1">Stream Status</span>
+                        <span className="text-[10px] font-bold text-surface-500 uppercase tracking-widest pl-1">Tracking Status</span>
                         <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-surface-900/50 border border-white/5 text-sm font-mono text-surface-300">
                             <span className={clsx("w-2 h-2 rounded-full", isLoading ? "bg-amber-500 animate-pulse" : "bg-emerald-500")}></span>
                             {isLoading ? "SYNCING" : "LIVE"}
@@ -114,7 +127,7 @@ export const Dashboard = () => {
                                 : "bg-brand-600 text-white border-brand-600 hover:bg-brand-500 hover:border-brand-500 shadow-lg shadow-brand-900/20 active:translate-y-0.5"
                         )}
                    >
-                       {isTracking ? <><Check size={18} /> Active Stream</> : <><Plus size={18} /> Track Asset</>}
+                       {isTracking ? <><Check size={18} /> Tracking </> : <><Plus size={18} /> Track Asset</>}
                    </button>
                 </div>
             </div>
@@ -125,22 +138,22 @@ export const Dashboard = () => {
                     label="Last Price" 
                     value={latest?.price || 0} 
                     prefix="$" 
+                    type="currency"
                     loading={isLoading} 
-                    delay={0.1} 
                 />
                 <MetricCard 
                     label="24h Volume" 
                     value={latest?.volume || 0} 
                     prefix="$" 
+                    type="compact"
                     loading={isLoading} 
-                    delay={0.2} 
                 />
                 <MetricCard 
                     label="Trend Signal" 
-                    value={isLoading ? "-" : marketSignal.text} 
+                    value={marketSignal.text} 
                     valueColor={marketSignal.color}
-                    loading={isLoading} 
-                    delay={0.3} 
+                    loading={isLoading}
+                    tooltip={signalTooltip}
                 />
             </div>
 
@@ -163,7 +176,20 @@ export const Dashboard = () => {
             <ConfirmDialog
                 isOpen={isConfirmOpen}
                 onClose={() => setIsConfirmOpen(false)}
-                onConfirm={() => trackMutation.mutate({ coin_id: coin, vs_currency: 'usd' })}
+                onConfirm={() => {
+                    trackMutation.mutate(
+                        { coin_id: coin, vs_currency: 'usd' }, 
+                        {
+                            onSuccess: () => {
+                                showToast(`Now tracking ${coin.toUpperCase()}`, 'success');
+                                setIsConfirmOpen(false);
+                            },
+                            onError: () => {
+                                showToast('Failed to start tracking. Server might be busy.', 'error');
+                            }
+                        }
+                    );
+                }}
                 title={`Track ${coin.toUpperCase()}?`}
                 message={`This will start a persistent background worker to poll ${coin} data every 5 minutes. Historical data will be backfilled automatically.`}
                 confirmText="Start Tracking"

@@ -24,7 +24,7 @@ export const UserProfile = () => {
                 <div className="flex items-center justify-between mb-8">
                     <h2 className="text-xl font-bold text-white flex items-center gap-3 font-display">
                         <TrendingUp size={22} className="text-brand-500"/> 
-                        Active Streams
+                        Active Feeds
                     </h2>
                     <span className="text-xs font-bold text-surface-500 uppercase tracking-widest bg-surface-950/50 px-3 py-1 rounded-lg border border-white/5">
                         {pairs?.length || 0} Assets
@@ -68,7 +68,7 @@ export const UserProfile = () => {
                                             <td className="px-6 py-5 whitespace-nowrap">
                                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 tracking-wide uppercase">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                                    Streaming
+                                                    Tracking
                                                 </span>
                                             </td>
                                             <td className="px-6 py-5 whitespace-nowrap text-right">
@@ -120,7 +120,7 @@ export const UserProfile = () => {
                         <div className="w-16 h-16 bg-surface-800/50 rounded-full flex items-center justify-center mb-4">
                             <Activity size={32} className="text-surface-600" />
                         </div>
-                        <p className="text-surface-400 font-medium mb-1">No active data streams found.</p>
+                        <p className="text-surface-400 font-medium mb-1">No active data tracking found.</p>
                         <p className="text-surface-600 text-sm mb-6 max-w-sm">Start tracking assets from the dashboard to see them listed here.</p>
                         <button onClick={() => window.location.href = '/dashboard'} className="px-6 py-2.5 bg-brand-600 hover:bg-brand-500 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-brand-900/20">
                             Go to Dashboard
@@ -135,7 +135,7 @@ export const UserProfile = () => {
                 onConfirm={() => {
                     if (deleteTarget) stopMutation.mutate(deleteTarget);
                 }}
-                title="Stop Data Stream?"
+                title="Stop Data Collection?"
                 message={`Are you sure you want to stop tracking ${deleteTarget?.coin_id.toUpperCase()}? This will terminate the background worker for this asset.`}
                 confirmText="Stop Tracking"
                 isDestructive={true}

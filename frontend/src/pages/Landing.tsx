@@ -31,7 +31,7 @@ export const Landing = () => {
             
             <p className="text-xl text-surface-400 max-w-2xl mx-auto mb-10 leading-relaxed font-medium">
               Eliminate noise. A dedicated terminal for tracking crypto assets with 
-              idempotent data pipelines and real-time visualization.
+              idempotent data pipelines and live market tracking.
             </p>
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
