@@ -29,4 +29,6 @@ __pycache__/
 venv/
 *.env
 
+# Comment firebase for deployment
 firebase.json
+firebase*

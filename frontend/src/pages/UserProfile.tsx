@@ -4,8 +4,11 @@ import { Trash2, TrendingUp, Shield, Activity, Square, CheckSquare } from 'lucid
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useToast } from '../context/ToastContext';
 import clsx from 'clsx';
+import { useNavigate } from 'react-router-dom';
 
 export const UserProfile = () => {
+    const navigate = useNavigate();
+
     // State
     const [deleteTarget, setDeleteTarget] = useState<{coin_id: string, vs_currency: string} | null>(null);
     const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
@@ -225,7 +228,10 @@ export const UserProfile = () => {
                         </div>
                         <p className="text-surface-400 font-medium mb-1">No active data tracking found.</p>
                         <p className="text-surface-600 text-sm mb-6 max-w-sm">Start tracking assets from the dashboard to see them listed here.</p>
-                        <button onClick={() => window.location.href = '/dashboard'} className="px-6 py-2.5 bg-brand-600 hover:bg-brand-500 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-brand-900/20">
+                        <button 
+                            onClick={() => navigate('/dashboard')} 
+                            className="px-6 py-2.5 bg-brand-600 hover:bg-brand-500 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-brand-900/20"
+                        >
                             Go to Dashboard
                         </button>
                     </div>
