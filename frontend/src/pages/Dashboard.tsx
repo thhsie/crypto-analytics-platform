@@ -240,8 +240,17 @@ export const Dashboard = () => {
                                     setActionModal(null); 
                                 },
                                 onError: (err: any) => {
-                                    const msg = err.response?.data?.detail || "Failed to start tracking";
-                                    showToast(msg, 'error');
+                                    const statusCode = err.response?.status;
+                                    const backendMsg = err.response?.data?.detail;
+
+                                    if (statusCode === 429) {
+                                        showToast("⏳ Too fast! CoinGecko is cooling down. Wait 60s.", 'error');
+                                    } else if (statusCode === 404) {
+                                        showToast(`❌ Asset '${coin}' not found. Check spelling.`, 'error');
+                                    } else {
+                                        // Fallback to backend message or generic error
+                                        showToast(backendMsg || "Failed to start stream", 'error');
+                                    }
                                 }
                             }
                         );

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Query, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Depends, Query, BackgroundTasks, status
 from app.db.models import TrackedPair, PriceData, User
 from app.auth import get_current_user
 from app.services.queue_manager import add_to_backfill_queue, is_task_pending
