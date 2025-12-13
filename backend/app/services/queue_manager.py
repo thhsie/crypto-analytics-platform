@@ -6,6 +6,9 @@ backfill_queue = asyncio.Queue()
 # Set to track pending items to avoid duplicates in the queue
 pending_tasks = set()
 
+def is_task_pending(coin_id: str, vs_currency: str) -> bool:
+    return f"{coin_id}:{vs_currency}" in pending_tasks
+
 async def add_to_backfill_queue(coin_id: str, vs_currency: str, days: int):
     """
     Adds a task to the queue if it's not already pending.
@@ -34,7 +37,10 @@ async def backfill_worker():
             await backfill_historical_data(coin_id, vs_currency, days)
             
             # 3. Cleanup & Rate Limit
-            pending_tasks.remove(key)
+            # CRITICAL: We only remove it from 'pending' AFTER the work is totally done
+            if key in pending_tasks:
+                pending_tasks.remove(key)
+
             backfill_queue.task_done()
             
             # 4. SLEEP: The most important part.
