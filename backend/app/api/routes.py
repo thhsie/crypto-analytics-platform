@@ -144,25 +144,41 @@ async def get_supported_coins(uid: str = Depends(get_current_user)):
 @router.post("/pairs", status_code=201)
 async def start_tracking(
     dto: PairDTO, 
-    background_tasks: BackgroundTasks, # Inject BackgroundTasks
+    background_tasks: BackgroundTasks, 
     uid: str = Depends(get_current_user)
 ):
-    # 1. Ensure User
+    # Validate with CoinGecko (Prevents Zombies & detects Rate Limits)
+    # We use a quick, lightweight call to /simple/price
+    url = "https://api.coingecko.com/api/v3/simple/price"
+    params = {"ids": dto.coin_id, "vs_currencies": dto.vs_currency}
+    
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(url, params=params)
+        
+        if resp.status_code == 429:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="CoinGecko API rate limit reached. Please try again in 1 minute."
+            )
+        
+        data = resp.json()
+        if not data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Asset '{dto.coin_id}' not found on CoinGecko."
+            )
+
+    # Proceed after validation
     if not await User.find_one(User.firebase_uid == uid):
         await User(firebase_uid=uid).insert()
 
-    # 2. Check if Pair Exists
     exist = await TrackedPair.find_one(
         TrackedPair.user_id == uid,
         TrackedPair.coin_id == dto.coin_id,
         TrackedPair.vs_currency == dto.vs_currency
     )
 
-    # 3. Trigger Data Fetch (Background)
-    # This runs AFTER the response is sent, so UI doesn't freeze, 
-    # but data arrives shortly after.
-    # We trigger this regardless of whether the user was already tracking it, 
-    # just in case the data is stale.
+    # Trigger backfill
     background_tasks.add_task(backfill_historical_data, dto.coin_id, dto.vs_currency, 90)
 
     if exist:

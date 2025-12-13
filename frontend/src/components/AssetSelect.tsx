@@ -11,20 +11,25 @@ interface Props {
 
 export const AssetSelect = ({ value, onChange }: Props) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [search, setSearch] = useState("");
+    const [search, setSearch] = useState(""); 
     const containerRef = useRef<HTMLDivElement>(null);
     
+    // Dynamic list
     const { data: assets, isLoading } = useCoinList();
 
     // Fallback if loading or error
     const displayAssets = assets || [{ id: value, symbol: '...', name: 'Loading...', image: '' }];
+    
+    // Find selected or default
     const selectedAsset = displayAssets.find(a => a.id === value) || displayAssets[0];
 
+    // Search filtering
     const filteredAssets = displayAssets.filter(a => 
         a.name.toLowerCase().includes(search.toLowerCase()) || 
         a.symbol.toLowerCase().includes(search.toLowerCase())
     );
 
+    // Close on click outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -37,26 +42,30 @@ export const AssetSelect = ({ value, onChange }: Props) => {
 
     return (
         <div className="relative w-64" ref={containerRef}>
+            {/* Trigger Button */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className="w-full flex items-center justify-between bg-surface-900/50 border border-white/10 hover:border-white/20 text-white py-2.5 px-4 rounded-xl transition-all shadow-sm group"
             >
                 <div className="flex items-center gap-3 overflow-hidden">
+                    {/* Dynamic Image or Fallback */}
                     {selectedAsset.image ? (
                         <img src={selectedAsset.image} alt={selectedAsset.symbol} className="w-6 h-6 rounded-full" />
                     ) : (
                         <div className="w-6 h-6 rounded-full bg-brand-500/20 flex items-center justify-center text-[10px] font-bold text-brand-400">
-                            {selectedAsset.symbol?.[0]}
+                            {selectedAsset.symbol?.[0] || '?'}
                         </div>
                     )}
+                    
                     <div className="flex flex-col items-start leading-none gap-1 truncate">
                         <span className="text-sm font-bold tracking-tight truncate">{selectedAsset.name}</span>
-                        <span className="text-[10px] text-surface-400 font-mono">{selectedAsset.symbol}-USD</span>
+                        <span className="text-[10px] text-surface-400 font-mono">{selectedAsset.symbol ? `${selectedAsset.symbol.toUpperCase()}-USD` : 'LOADING'}</span>
                     </div>
                 </div>
                 <ChevronDown size={16} className={clsx("text-surface-500 transition-transform", isOpen && "rotate-180")} />
             </button>
 
+            {/* Dropdown Menu */}
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
@@ -82,7 +91,11 @@ export const AssetSelect = ({ value, onChange }: Props) => {
 
                         <div className="max-h-64 overflow-y-auto custom-scrollbar">
                             {isLoading ? (
-                                <div className="p-4 text-center text-xs text-surface-500">Loading assets...</div>
+                                <div className="p-4 text-center text-xs text-surface-500 animate-pulse">Loading assets...</div>
+                            ) : filteredAssets.length === 0 ? (
+                                <div className="p-4 text-center text-xs text-surface-500 italic">
+                                    No assets found.
+                                </div>
                             ) : (
                                 filteredAssets.map((asset) => (
                                     <button
@@ -92,7 +105,7 @@ export const AssetSelect = ({ value, onChange }: Props) => {
                                     >
                                         <div className="flex items-center gap-3">
                                             {asset.image ? (
-                                                <img src={asset.image} className="w-6 h-6 rounded-full grayscale group-hover:grayscale-0 transition-all" />
+                                                <img src={asset.image} className="w-6 h-6 rounded-full grayscale group-hover:grayscale-0 transition-all" alt={asset.symbol} />
                                             ) : (
                                                 <div className="w-6 h-6 rounded-lg bg-surface-800 flex items-center justify-center text-surface-400">
                                                     <Coins size={14} />
@@ -102,7 +115,7 @@ export const AssetSelect = ({ value, onChange }: Props) => {
                                                 <p className={clsx("text-sm font-medium", asset.id === value ? "text-brand-400" : "text-white")}>
                                                     {asset.name}
                                                 </p>
-                                                <p className="text-[10px] text-surface-500 font-mono">{asset.symbol}</p>
+                                                <p className="text-[10px] text-surface-500 font-mono">{asset.symbol?.toUpperCase()}</p>
                                             </div>
                                         </div>
                                         {asset.id === value && <Check size={14} className="text-brand-400" />}
