@@ -17,6 +17,8 @@ export const Navbar = () => {
   const [isSignOutConfirm, setIsSignOutConfirm] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  const isLoginPage = location.pathname === '/login';
+
   useEffect(() => onAuthStateChanged(auth, (u) => setUser(u)), []);
 
   useEffect(() => {
@@ -123,12 +125,14 @@ export const Navbar = () => {
                 </div>
               </>
             ) : (
-              <Link 
-                to="/login" 
-                className="text-sm font-bold bg-white text-surface-950 px-5 py-2 rounded-lg hover:bg-surface-200 transition-colors shadow-lg shadow-white/5"
-              >
-                Sign In
-              </Link>
+                !isLoginPage && (
+                    <Link 
+                        to="/login" 
+                        className="text-sm font-bold bg-white text-surface-950 px-5 py-2 rounded-lg hover:bg-surface-200 transition-colors shadow-lg shadow-white/5"
+                    >
+                        Sign In
+                    </Link>
+                )
             )}
           </div>
         </div>

@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../config/firebase';
-import { useAnalytics, useTrackPair, useTrackedPairs } from '../hooks/useAnalytics';
+import { useAnalytics, useStopTracking, useTrackPair, useTrackedPairs } from '../hooks/useAnalytics';
 import { MetricCard } from '../components/MetricCard';
 import { MainChart } from '../components/MainChart';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { AssetSelect } from '../components/AssetSelect';
-import { Plus, Check, RefreshCw, BarChart2 } from 'lucide-react';
+import { Plus, Check, RefreshCw, BarChart2, X } from 'lucide-react';
 import clsx from 'clsx';
 import { motion } from 'framer-motion';
 import { useToast } from '../context/ToastContext';
@@ -15,7 +15,7 @@ export const Dashboard = () => {
     const navigate = useNavigate();
     const [coin, setCoin] = useState('bitcoin');
     const [days, setDays] = useState(7);
-    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+    const [actionModal, setActionModal] = useState<'track' | 'stop' | null>(null);
     const { showToast } = useToast();
     
     // Auth Guard
@@ -27,11 +27,12 @@ export const Dashboard = () => {
     const { data, isLoading, isRefetching } = useAnalytics(coin, 'usd', days);
     const { data: trackedPairs } = useTrackedPairs();
     const trackMutation = useTrackPair();
+    const stopMutation = useStopTracking();
     
     const latest = data?.[data.length-1];
     const isTracking = trackedPairs?.some((p: any) => p.coin_id === coin);
 
-    // --- LOGIC: Calculate Signal based on Simple Moving Average (SMA) ---
+    // Calculate Signal based on Simple Moving Average (SMA)
     const marketSignal = useMemo(() => {
         if (!data || data.length === 0) return { text: "-", color: "" };
 
@@ -53,6 +54,7 @@ export const Dashboard = () => {
         return { text: "Neutral", color: "text-surface-400" };
     }, [data]);
 
+    // ------------------------------------------------------------------
     const signalTooltip = `ALGORITHM: Simple Moving Average (SMA)
 
 We calculate the average price over the selected timeframe (e.g. 7 Days) and compare it to the current price.
@@ -116,18 +118,40 @@ This identifies if the asset is overbought or oversold relative to its recent ba
                 
                 <div className="flex items-center gap-4 self-end md:self-center">
                    {isRefetching && <RefreshCw size={16} className="animate-spin text-brand-500" />}
-                   
                    <button
-                        onClick={() => !isTracking && setIsConfirmOpen(true)}
-                        disabled={isTracking || trackMutation.isPending}
+                        onClick={() => setActionModal(isTracking ? 'stop' : 'track')}
+                        disabled={trackMutation.isPending || stopMutation.isPending}
                         className={clsx(
-                            "flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all border",
+                            "relative group flex items-center justify-center px-6 py-3 rounded-xl text-sm font-bold transition-all border min-w-[160px]",
                             isTracking 
-                                ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-400 cursor-default" 
+                                // STATE: TRACKING
+                                ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-red-500/10 hover:border-red-500/20 hover:text-red-400" 
+                                
+                                // STATE: NOT TRACKING
                                 : "bg-brand-600 text-white border-brand-600 hover:bg-brand-500 hover:border-brand-500 shadow-lg shadow-brand-900/20 active:translate-y-0.5"
                         )}
                    >
-                       {isTracking ? <><Check size={18} /> Tracking </> : <><Plus size={18} /> Track Asset</>}
+                       {/* LOADING STATE */}
+                       {(trackMutation.isPending || stopMutation.isPending) ? (
+                           <span className="flex items-center gap-2 opacity-70 cursor-wait">
+                               <RefreshCw size={18} className="animate-spin" /> Processing
+                           </span>
+                       ) : isTracking ? (
+                           <>
+                               <span className="flex items-center gap-2 group-hover:hidden animate-fade-in">
+                                   <Check size={18} /> Active Tracking
+                               </span>
+                               
+                               <span className="hidden group-hover:flex items-center gap-2 animate-fade-in">
+                                   <X size={18} /> Stop Tracking
+                               </span>
+                           </>
+                       ) : (
+                           /* VIEW 3: Not Tracking */
+                           <span className="flex items-center gap-2">
+                               <Plus size={18} /> Track Asset
+                           </span>
+                       )}
                    </button>
                 </div>
             </div>
@@ -174,25 +198,31 @@ This identifies if the asset is overbought or oversold relative to its recent ba
 
             {/* Track Modal */}
             <ConfirmDialog
-                isOpen={isConfirmOpen}
-                onClose={() => setIsConfirmOpen(false)}
+                isOpen={!!actionModal}
+                onClose={() => setActionModal(null)}
+                isDestructive={actionModal === 'stop'}
+                title={actionModal === 'stop' ? `Stop ${coin.toUpperCase()}?` : `Track ${coin.toUpperCase()}?`}
+                message={actionModal === 'stop' 
+                    ? "This will stop the background data collection for this asset."
+                    : "This will start a persistent background worker. Historical data will be backfilled."
+                }
+                confirmText={actionModal === 'stop' ? "Stop Tracking" : "Start Tracking"}
                 onConfirm={() => {
-                    trackMutation.mutate(
-                        { coin_id: coin, vs_currency: 'usd' }, 
-                        {
-                            onSuccess: () => {
-                                showToast(`Now tracking ${coin.toUpperCase()}`, 'success');
-                                setIsConfirmOpen(false);
-                            },
-                            onError: () => {
-                                showToast('Failed to start tracking. Server might be busy.', 'error');
+                    if (actionModal === 'stop') {
+                        stopMutation.mutate({ coin_id: coin, vs_currency: 'usd' }, {
+                            onSuccess: () => { showToast(`Stopped tracking ${coin}`, 'success'); setActionModal(null); },
+                            onError: () => showToast("Failed to stop tracking", 'error')
+                        });
+                    } else {
+                        trackMutation.mutate({ coin_id: coin, vs_currency: 'usd' }, {
+                            onSuccess: () => { showToast(`Now tracking ${coin}`, 'success'); setActionModal(null); },
+                            onError: (err: any) => {
+                                const msg = err.response?.data?.detail || "Failed to start tracking";
+                                showToast(msg, 'error');
                             }
-                        }
-                    );
+                        });
+                    }
                 }}
-                title={`Track ${coin.toUpperCase()}?`}
-                message={`This will start a persistent background worker to poll ${coin} data every 5 minutes. Historical data will be backfilled automatically.`}
-                confirmText="Start Tracking"
             />
         </div>
     );
