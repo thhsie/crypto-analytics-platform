@@ -1,8 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Query, BackgroundTasks
 from app.db.models import TrackedPair, PriceData, User
 from app.auth import get_current_user
-from app.services.market_data import backfill_historical_data
-from app.services.queue_manager import add_to_backfill_queue
+from app.services.queue_manager import add_to_backfill_queue, is_task_pending
 from pydantic import BaseModel
 from typing import List, Literal
 import httpx
@@ -81,9 +80,16 @@ async def get_analytics(
     ).sort("+timestamp").to_list()
 
     # 5. Return Status + Data
-    # If we triggered a fetch, tell frontend we are 'syncing'
-    # Or if data is completely empty, we are definitely 'syncing'
-    status_code = "syncing" if (should_fetch or not data) else "up_to_date"
+    # Even if we have data, if the worker is still crunching this coin, 
+    # we MUST tell frontend to keep polling.
+    
+    if is_task_pending(coin, vs):
+        status_code = "syncing"
+    elif should_fetch or not data:
+        # Fallback: if we just queued it (race condition safety) or DB is empty
+        status_code = "syncing"
+    else:
+        status_code = "up_to_date"
 
     return {
         "status": status_code,
