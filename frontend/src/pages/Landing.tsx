@@ -23,30 +23,33 @@ export const Landing = () => {
             </div>
 
             <h1 className="text-5xl md:text-7xl font-bold text-white tracking-tight mb-6 leading-tight">
-              Trusted <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-indigo-400">
-                Market Information.
-              </span>
+                Reliable <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-indigo-400">
+                    Market Data
+                </span>
             </h1>
-            
             <p className="text-xl text-surface-400 max-w-2xl mx-auto mb-10 leading-relaxed font-medium">
-              Eliminate noise. A dedicated terminal for tracking crypto assets with 
-              idempotent data pipelines and live market tracking.
+              A dedicated crypto trading terminal that keeps your data clean and up-to-date with reliable, repeatable data pipelines and real-time market tracking.
             </p>
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
-                to="/login"
-                className="group relative inline-flex h-12 items-center justify-center overflow-hidden rounded-xl bg-white px-8 font-bold text-surface-950 shadow-xl shadow-white/10 transition-all duration-300 hover:scale-[1.02] focus:outline-none"
+                  to="/login"
+                  className="group relative inline-flex h-12 items-center justify-center overflow-hidden rounded-xl bg-white px-8 font-bold text-surface-950 shadow-xl shadow-white/10 transition-all duration-300 hover:scale-[1.02] focus:outline-none"
               >
-                <span className="mr-2">Get Started</span>
-                <ChevronRight size={18} className="transition-transform group-hover:translate-x-1" />
+                  <span className="mr-2">Start</span>
+                  <ChevronRight size={18} className="transition-transform group-hover:translate-x-1" />
               </Link>
               
-              <a href="https://github.com/thhsie/crypto-analytics-platform" className="px-8 py-3 rounded-xl border border-white/10 text-surface-300 font-bold hover:bg-white/5 transition-colors">
-                View Documentation
+              <a 
+                  href="https://github.com/thhsie/crypto-analytics-platform" 
+                  className="px-8 py-3 rounded-xl border border-white/10 text-surface-300 font-bold hover:bg-white/5 transition-colors"
+                  target="_blank"
+                  rel="noopener noreferrer"
+              >
+                  View Documentation
               </a>
-            </div>
+          </div>
           </motion.div>
         </div>
       </section>
