@@ -40,14 +40,17 @@ class PriceData(Document):
     """
     Requirements: PDF Page 4 (Idempotent upserts)
     Collection: price_data
-    Index: Compound on (coin, vs, timestamp)
+    Index: Unique on (user_id, coin_id, vs_currency) with TTL (inserted_at)
     """
     coin_id: Indexed(str)
     vs_currency: Indexed(str)
-    timestamp: Indexed(int) # Unix ms
+    timestamp: Indexed(int) 
     price: float
     volume: float
     provider: str = "coingecko"
+    
+    # Field for TTL
+    inserted_at: datetime = Field(default_factory=datetime.utcnow)
 
     class Settings:
         name = "price_data"
@@ -55,5 +58,10 @@ class PriceData(Document):
             IndexModel(
                 [("coin_id", ASCENDING), ("vs_currency", ASCENDING), ("timestamp", DESCENDING)],
                 unique=True
+            ),
+            # TTL Index: Expire 90 days after 'inserted_at'
+            IndexModel(
+                [("inserted_at", ASCENDING)],
+                expireAfterSeconds=90 * 24 * 60 * 60 # 90 Days in seconds
             )
         ]

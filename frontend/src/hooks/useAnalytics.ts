@@ -26,7 +26,20 @@ export const useAnalytics = (coin: string, vs: string, days: number) => {
             return data as { timestamp: number; price: number; volume: number }[];
         },
         enabled: !!auth.currentUser,
-        refetchInterval: 60000 
+
+        // 1. Poll every 60 seconds
+        refetchInterval: 60000, 
+        
+        // 2. IMPORTANT: Do NOT poll if tab is in background
+        refetchIntervalInBackground: false, 
+        
+        // 3. IMPORTANT: Do NOT refetch immediately when clicking back to the tab
+        // (Prevents a "burst" of requests if the user clicks between tabs quickly)
+        refetchOnWindowFocus: false,
+        
+        // 4. Cache Time: If I switch coins and switch back, don't refetch immediately.
+        // Keep data fresh for 1 minute
+        staleTime: 60000
     });
 };
 

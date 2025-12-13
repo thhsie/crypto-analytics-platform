@@ -4,6 +4,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
 from app.db.models import User, TrackedPair, PriceData
 from app.services.collector import run_collector_cycle
+from app.services.queue_manager import backfill_worker 
 from app.api.routes import router
 import asyncio
 import os
@@ -14,6 +15,9 @@ load_dotenv()
 
 # Global reference to the worker task so we can cancel it on shutdown
 background_task_ref = None
+
+# Add a reference for the queue task
+queue_task_ref = None
 
 async def background_worker():
     """
@@ -33,26 +37,38 @@ async def background_worker():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # --- STARTUP ---
-    # 1. Initialize DB
+    # Initialize DB
     client = AsyncIOMotorClient(os.getenv("MONGO_URI", "mongodb://localhost:27017"))
     await init_beanie(database=client.crypto_analytics, document_models=[User, TrackedPair, PriceData])
     print("[System] DB Connected.")
 
-    # 2. Start Background Worker
+    # Start Background Worker
     # We store the task reference to prevent garbage collection and allow cancellation
     global background_task_ref
     background_task_ref = asyncio.create_task(background_worker())
 
+    # Start Queue Worker
+    global queue_task_ref
+    queue_task_ref = asyncio.create_task(backfill_worker())
+
     yield # App is running and serving requests
 
     # --- SHUTDOWN ---
-    # 3. Graceful Cleanup
+    # Graceful Cleanups:
+    # Cancel Collector
     if background_task_ref:
         background_task_ref.cancel()
         try:
             await background_task_ref
         except asyncio.CancelledError:
             print("[System] Background worker shutdown complete.")
+    # Cancel Queue Worker
+    if queue_task_ref:
+        queue_task_ref.cancel()
+        try:
+            await queue_task_ref
+        except asyncio.CancelledError:
+            print("[System] Queue worker shutdown complete.")
 
 app = FastAPI(title="Crypto Analytics API", lifespan=lifespan)
 

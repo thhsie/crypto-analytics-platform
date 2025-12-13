@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Query, BackgroundTasks
 from app.db.models import TrackedPair, PriceData, User
 from app.auth import get_current_user
 from app.services.market_data import backfill_historical_data
+from app.services.queue_manager import add_to_backfill_queue
 from pydantic import BaseModel
 import httpx
 from datetime import datetime, timedelta
@@ -16,24 +17,6 @@ COIN_LIST_CACHE = {
 class PairDTO(BaseModel):
     coin_id: str
     vs_currency: str
-
-@router.post("/pairs", status_code=201)
-async def start_tracking(dto: PairDTO, uid: str = Depends(get_current_user)):
-    # Sync User
-    if not await User.find_one(User.firebase_uid == uid):
-        await User(firebase_uid=uid).insert()
-
-    exist = await TrackedPair.find_one(
-        TrackedPair.user_id == uid,
-        TrackedPair.coin_id == dto.coin_id,
-        TrackedPair.vs_currency == dto.vs_currency
-    )
-    if exist:
-        exist.status = "active"
-        await exist.save()
-        return exist
-
-    return await TrackedPair(user_id=uid, coin_id=dto.coin_id, vs_currency=dto.vs_currency).insert()
 
 @router.get("/pairs")
 async def list_pairs(uid: str = Depends(get_current_user)):
@@ -84,8 +67,10 @@ async def get_analytics(
         # Max cap to 90 to respect API limits
         days_needed = min(days_needed, 90)
         
-        # Synchronous await here ensures the user sees data immediately
-        await backfill_historical_data(coin, vs, days=days_needed)
+        # We fire-and-forget to the queue. 
+        # The user might not see data *instantly* in this request, 
+        # but it prevents the server from crashing.
+        await add_to_backfill_queue(coin, vs, days_needed)
 
     return await PriceData.find(
         PriceData.coin_id == coin,
@@ -178,8 +163,7 @@ async def start_tracking(
         TrackedPair.vs_currency == dto.vs_currency
     )
 
-    # Trigger backfill
-    background_tasks.add_task(backfill_historical_data, dto.coin_id, dto.vs_currency, 90)
+    await add_to_backfill_queue(dto.coin_id, dto.vs_currency, 90)
 
     if exist:
         exist.status = "active"
