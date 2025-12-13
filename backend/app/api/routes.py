@@ -4,6 +4,7 @@ from app.auth import get_current_user
 from app.services.market_data import backfill_historical_data
 from app.services.queue_manager import add_to_backfill_queue
 from pydantic import BaseModel
+from typing import List, Literal
 import httpx
 from datetime import datetime, timedelta
 
@@ -18,6 +19,10 @@ class PairDTO(BaseModel):
     coin_id: str
     vs_currency: str
 
+class AnalyticsResponse(BaseModel):
+    status: Literal["up_to_date", "syncing"]
+    data: List[PriceData]
+
 @router.get("/pairs")
 async def list_pairs(uid: str = Depends(get_current_user)):
     return await TrackedPair.find(TrackedPair.user_id == uid, TrackedPair.status == "active").to_list()
@@ -30,15 +35,14 @@ async def stop_tracking(coin: str, vs: str, uid: str = Depends(get_current_user)
         await pair.save()
     return {"status": "stopped"}
 
-@router.get("/analytics/{coin}/{vs}")
+@router.get("/analytics/{coin}/{vs}", response_model=AnalyticsResponse)
 async def get_analytics(
     coin: str, vs: str, 
     from_ts: int = Query(alias="from"), 
     to_ts: int = Query(alias="to"),
     uid: str = Depends(get_current_user)
 ):
-    # Check if we have data covering the requested range (roughly)
-    # We check the earliest timestamp in DB for this coin
+    # 1. Check DB for existing data range
     earliest_record = await PriceData.find(
         PriceData.coin_id == coin,
         PriceData.vs_currency == vs
@@ -46,38 +50,45 @@ async def get_analytics(
     
     cutoff_time = datetime.fromtimestamp(from_ts / 1000.0)
     
-    # If no data OR earliest data is newer than what we asked for (meaning we have a gap in history)
-    # We trigger a fetch.
+    # 2. Determine if we need to fetch
     should_fetch = False
+    
+    # Case A: No data at all
     if not earliest_record:
         should_fetch = True
+    # Case B: We have data, but it starts LATER than requested (Gap at the start)
     else:
         db_earliest = datetime.fromtimestamp(earliest_record[0].timestamp / 1000.0)
-        # If DB starts at Dec 5th, but we asked for Dec 1st, we need to fetch history
+        # Buffer of 1 hour to avoid tiny gaps triggering refetches
         if db_earliest > cutoff_time + timedelta(hours=1): 
             should_fetch = True
 
+    # 3. Trigger Queue if needed
     if should_fetch:
-        # Calculate days needed. 
-        # timestamp is ms. (now - from) / 1000 / 3600 / 24
         now_ts = datetime.utcnow().timestamp() * 1000
         days_needed = (now_ts - from_ts) / (1000 * 60 * 60 * 24)
-        days_needed = max(1, int(days_needed) + 1) # Round up, min 1 day
+        days_needed = max(1, int(days_needed) + 1)
+        days_needed = min(days_needed, 90) # Cap at 90
         
-        # Max cap to 90 to respect API limits
-        days_needed = min(days_needed, 90)
-        
-        # We fire-and-forget to the queue. 
-        # The user might not see data *instantly* in this request, 
-        # but it prevents the server from crashing.
         await add_to_backfill_queue(coin, vs, days_needed)
 
-    return await PriceData.find(
+    # 4. Fetch the actual data from DB
+    data = await PriceData.find(
         PriceData.coin_id == coin,
         PriceData.vs_currency == vs,
         PriceData.timestamp >= from_ts,
         PriceData.timestamp <= to_ts
     ).sort("+timestamp").to_list()
+
+    # 5. Return Status + Data
+    # If we triggered a fetch, tell frontend we are 'syncing'
+    # Or if data is completely empty, we are definitely 'syncing'
+    status_code = "syncing" if (should_fetch or not data) else "up_to_date"
+
+    return {
+        "status": status_code,
+        "data": data
+    }
 
 @router.get("/coins/list")
 async def get_supported_coins(uid: str = Depends(get_current_user)):
